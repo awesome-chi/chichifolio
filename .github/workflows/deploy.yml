@@ -10,7 +10,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: 서버에 배포
+      - name: Deploy to Server
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -22,26 +22,3 @@ jobs:
             npm install
             npm run build
             pm2 restart chichifolio
-```
-
----
-
-### 저장 방법
-```
-오른쪽 위 "Commit changes" 버튼 클릭
-→ 메시지: "add deploy workflow"
-→ "Commit changes" 클릭
-```
-
----
-
-### 정상 작동 확인
-```
-GitHub 저장소 → 상단 "Actions" 탭 클릭
-```
-
-이런 화면이 보이면 배포가 실행 중인 거예요:
-```
-✅ 초록불  → 배포 성공
-🟡 노란불  → 배포 진행 중
-❌ 빨간불  → 에러 발생 (에러 내용 복붙해주세요)
