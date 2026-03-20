@@ -1,0 +1,25 @@
+image: node:20-alpine
+
+pages:
+  stage: deploy
+  cache:
+    key: ${CI_COMMIT_REF_SLUG}
+    paths:
+      - node_modules/
+      - .next/cache/
+  variables:
+    NEXT_PUBLIC_FINNHUB_KEY: $FINNHUB_KEY
+    # FMP 검색: Settings → CI/CD → Variables 에 FMP_API_KEY 추가
+    NEXT_PUBLIC_FMP_API_KEY: $FMP_API_KEY
+    NEXT_PUBLIC_ADMIN_PASSWORD: $ADMIN_PASSWORD
+    NEXT_PUBLIC_SUPABASE_URL: $SUPABASE_URL
+    NEXT_PUBLIC_SUPABASE_ANON_KEY: $SUPABASE_ANON_KEY
+  script:
+    - npm ci
+    - npm run build
+    - rm -rf public && mv out public
+  artifacts:
+    paths:
+      - public
+  rules:
+    - if: $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH

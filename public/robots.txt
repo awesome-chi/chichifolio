@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://chichifolio.co.kr/sitemap.xml
