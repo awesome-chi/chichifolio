@@ -19,7 +19,7 @@ export default function AdminPage() {
     try {
       const result = await adminLogin(pw.trim());
       if (result) {
-        router.push('/dashboard');
+        router.push('/admin/dashboard');
       } else {
         setError("비밀번호가 올바르지 않습니다");
         setLoading(false);
@@ -37,7 +37,7 @@ export default function AdminPage() {
   );
 
   if (session) {
-    router.push('/dashboard');
+    router.push('/admin/dashboard');
     return null;
   }
 
