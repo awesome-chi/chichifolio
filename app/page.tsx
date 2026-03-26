@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
   BarChart3, Coins, Globe, TrendingUp,
@@ -11,36 +11,6 @@ import {
 import { useApp } from '@/components/AppContext';
 import AppNavBar from '@/components/AppNavBar';
 
-/* ─── Mock data ──────────────────────────────── */
-const STOCKS = [
-  { symbol:"SPY", name:"S&P 500 ETF", price:"$587.42", change:"+0.21%", up:true },
-  { symbol:"AAPL", name:"Apple Inc.", price:"$227.55", change:"+1.39%", up:true },
-  { symbol:"NVDA", name:"NVIDIA", price:"$131.28", change:"+4.32%", up:true },
-  { symbol:"MSFT", name:"Microsoft", price:"$424.73", change:"+0.69%", up:true },
-  { symbol:"TSLA", name:"Tesla Inc.", price:"$272.04", change:"-2.93%", up:false },
-  { symbol:"AMZN", name:"Amazon", price:"$204.37", change:"+0.87%", up:true },
-  { symbol:"GOOG", name:"Alphabet", price:"$172.91", change:"+0.51%", up:true },
-  { symbol:"삼성전자", name:"005930.KS", price:"₩58,200", change:"+1.04%", up:true },
-  { symbol:"SK하이닉스", name:"000660.KS", price:"₩198,500", change:"+1.79%", up:true },
-  { symbol:"QQQ", name:"Nasdaq 100", price:"$515.23", change:"+0.45%", up:true },
-  { symbol:"META", name:"Meta", price:"$612.77", change:"+1.12%", up:true },
-  { symbol:"BRK.B", name:"Berkshire", price:"$523.10", change:"+0.33%", up:true },
-];
-
-const SPARKS = [
-  "M0,30 C10,28 20,22 30,25 C40,28 50,18 60,12 C70,8 80,10 90,5",
-  "M0,25 C10,20 20,22 30,15 C40,12 50,18 60,10 C70,8 80,5 90,3",
-  "M0,35 C10,30 20,25 30,20 C40,22 50,15 60,10 C70,5 80,8 90,2",
-  "M0,28 C10,25 20,20 30,22 C40,18 50,15 60,12 C70,10 80,8 90,5",
-  "M0,8 C10,12 20,15 30,20 C40,18 50,25 60,28 C70,30 80,32 90,35",
-  "M0,30 C10,25 20,28 30,20 C40,15 50,18 60,12 C70,8 80,5 90,3",
-  "M0,25 C10,22 20,18 30,20 C40,15 50,12 60,10 C70,8 80,6 90,5",
-  "M0,32 C10,28 20,30 30,22 C40,18 50,15 60,12 C70,10 80,5 90,3",
-  "M0,35 C10,30 20,25 30,18 C40,15 50,12 60,8 C70,10 80,5 90,2",
-  "M0,28 C10,25 20,22 30,18 C40,20 50,15 60,10 C70,8 80,5 90,3",
-  "M0,30 C10,25 20,20 30,18 C40,15 50,12 60,10 C70,8 80,5 90,4",
-  "M0,25 C10,22 20,20 30,18 C40,15 50,12 60,10 C70,8 80,6 90,5",
-];
 
 const features = [
   { icon: BarChart3, title: "실시간 포트폴리오", desc: "미국·한국 주식을 한눈에 관리하고 수익률을 실시간 추적하세요" },
@@ -57,6 +27,24 @@ const stats = [
   { icon: Sparkles, value: "AI", label: "종목 검색", delay: "0.2s" },
   { icon: Zap, value: "100%", label: "무료 이용", delay: "0.3s" },
 ];
+
+/* ─── Stock list data ────────────────────────── */
+const STOCKS = [
+  { symbol: "SPY",      name: "S&P 500 ETF",  yahoo: "SPY",       tv: "AMEX:SPY" },
+  { symbol: "AAPL",     name: "Apple",         yahoo: "AAPL",      tv: "NASDAQ:AAPL" },
+  { symbol: "NVDA",     name: "NVIDIA",        yahoo: "NVDA",      tv: "NASDAQ:NVDA" },
+  { symbol: "MSFT",     name: "Microsoft",     yahoo: "MSFT",      tv: "NASDAQ:MSFT" },
+  { symbol: "TSLA",     name: "Tesla",         yahoo: "TSLA",      tv: "NASDAQ:TSLA" },
+  { symbol: "AMZN",     name: "Amazon",        yahoo: "AMZN",      tv: "NASDAQ:AMZN" },
+  { symbol: "GOOG",     name: "Alphabet",      yahoo: "GOOG",      tv: "NASDAQ:GOOG" },
+  { symbol: "삼성전자",  name: "005930.KS",    yahoo: "005930.KS", tv: "KRX:005930" },
+  { symbol: "SK하이닉스", name: "000660.KS",  yahoo: "000660.KS", tv: "KRX:000660" },
+  { symbol: "QQQ",      name: "Nasdaq 100",    yahoo: "QQQ",       tv: "NASDAQ:QQQ" },
+  { symbol: "META",     name: "Meta",          yahoo: "META",      tv: "NASDAQ:META" },
+  { symbol: "BRK.B",    name: "Berkshire",     yahoo: "BRK-B",     tv: "NYSE:BRK.B" },
+];
+type StockItem = typeof STOCKS[0];
+type Quote = { price: string; change: string; up: boolean };
 
 /* ─── TradingView Ticker Tape ────────────────── */
 function TradingViewTicker() {
@@ -95,11 +83,17 @@ function TradingViewTicker() {
     el.appendChild(s);
     return () => { el.innerHTML = ''; };
   }, []);
-  return <div ref={ref} className="tradingview-widget-container" />;
+  return (
+    <div className="relative">
+      <div ref={ref} className="tradingview-widget-container" />
+      {/* 외부 링크 클릭 차단 */}
+      <div className="absolute inset-0 z-10" />
+    </div>
+  );
 }
 
 /* ─── TradingView Advanced Chart ─────────────── */
-function TradingViewChart() {
+function TradingViewChart({ symbol = "AMEX:SPY" }: { symbol?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const el = ref.current;
@@ -115,7 +109,7 @@ function TradingViewChart() {
     s.async = true;
     s.textContent = JSON.stringify({
       autosize: true,
-      symbol: "AMEX:SPY",
+      symbol,
       interval: "D",
       timezone: "Etc/UTC",
       theme: "dark",
@@ -133,24 +127,98 @@ function TradingViewChart() {
     el.appendChild(w);
     el.appendChild(s);
     return () => { el.innerHTML = ''; };
-  }, []);
+  }, [symbol]);
   return <div ref={ref} className="tradingview-widget-container h-full w-full" />;
 }
 
-/* ─── Sparkline SVG ──────────────────────────── */
-function Sparkline({ path, up }: { path: string; up: boolean }) {
-  const color = up ? '#10b981' : '#ef4444';
+/* ─── Real-time Stock List ───────────────────── */
+function StockList({ onSelect }: { onSelect: (st: StockItem) => void }) {
+  const [quotes, setQuotes] = useState<Record<string, Quote>>({});
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const res = await fetch('/api/quotes');
+        if (res.ok) setQuotes(await res.json());
+      } catch {}
+    };
+    load();
+    const id = setInterval(load, 60_000);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <svg viewBox="0 0 90 40" className="w-[72px] h-8 shrink-0">
-      <defs>
-        <linearGradient id={`sp-${up?'g':'r'}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity="0.3" />
-          <stop offset="100%" stopColor={color} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={path + " L90,40 L0,40 Z"} fill={`url(#sp-${up?'g':'r'})`} />
-      <path d={path} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" />
-    </svg>
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-line shrink-0">
+        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">주요 종목</span>
+        <span className="text-[10px] text-slate-600">실시간</span>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {STOCKS.map((st) => {
+          const q = quotes[st.yahoo];
+          return (
+            <button
+              key={st.symbol}
+              onClick={() => onSelect(st)}
+              className="w-full flex items-center px-3 py-2.5 gap-2 border-b border-line-subtle hover:bg-white/5 transition-colors text-left"
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-baseline gap-1.5">
+                  <span className="font-bold text-xs text-cyan-400">{st.symbol}</span>
+                  <span className="text-[9px] text-slate-600 truncate">{st.name}</span>
+                </div>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-xs font-semibold text-white tabular-nums">
+                    {q?.price ?? '—'}
+                  </span>
+                  {q && (
+                    <span className={`text-[10px] font-semibold tabular-nums ${q.up ? 'text-emerald-400' : 'text-red-400'}`}>
+                      {q.change}
+                    </span>
+                  )}
+                </div>
+              </div>
+              <ChevronRight className="w-3.5 h-3.5 text-slate-700 shrink-0" />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Stock Chart Modal ──────────────────────── */
+function StockChartModal({ stock, onClose }: { stock: StockItem; onClose: () => void }) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" />
+      <div
+        className="relative glass-card w-full max-w-4xl h-[560px] flex flex-col z-10"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between px-5 py-3 border-b border-line shrink-0">
+          <div className="flex items-baseline gap-2">
+            <span className="font-bold text-white">{stock.symbol}</span>
+            <span className="text-sm text-slate-500">{stock.name}</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-slate-500 hover:text-white transition text-xl leading-none cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+        <div className="flex-1 min-h-0">
+          <TradingViewChart symbol={stock.tv} />
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -213,6 +281,7 @@ function DonutPreview() {
 /* ─── Main Landing Page ──────────────────────── */
 export default function LandingPage() {
   const { session, loaded, logout } = useApp();
+  const [selectedStock, setSelectedStock] = useState<StockItem | null>(null);
 
   return (
     <div className="min-h-screen bg-surface text-slate-200">
@@ -279,35 +348,9 @@ export default function LandingPage() {
             <TradingViewChart />
           </div>
 
-          {/* Scrolling stock list */}
+          {/* Real-time stock list */}
           <div className="market-stocks glass-card !rounded-2xl !p-0 overflow-hidden flex flex-col">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-line">
-              <span className="text-[11px] font-bold text-slate-500 uppercase tracking-widest">주요 종목</span>
-              <span className="text-[10px] text-slate-600">실시간</span>
-            </div>
-            <div className="flex-1 overflow-hidden relative">
-              <div className="absolute inset-x-0 top-0 h-5 bg-gradient-to-b from-surface-card to-transparent z-10 pointer-events-none" />
-              <div className="absolute inset-x-0 bottom-0 h-5 bg-gradient-to-t from-surface-card to-transparent z-10 pointer-events-none" />
-              <div className="animate-scroll-up">
-                {[...STOCKS, ...STOCKS].map((st, i) => (
-                  <div key={i} className="flex items-center px-3 py-2 gap-2 border-b border-line-subtle">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-baseline gap-1.5">
-                        <span className="font-bold text-xs text-cyan-400">{st.symbol}</span>
-                        <span className="text-[9px] text-slate-600 truncate">{st.name}</span>
-                      </div>
-                      <div className="flex items-baseline gap-1.5 mt-0.5">
-                        <span className="text-xs font-semibold text-white tabular-nums">{st.price}</span>
-                        <span className={`text-[10px] font-semibold tabular-nums ${st.up ? 'text-emerald-400' : 'text-red-400'}`}>
-                          {st.change}
-                        </span>
-                      </div>
-                    </div>
-                    <Sparkline path={SPARKS[i % SPARKS.length]} up={st.up} />
-                  </div>
-                ))}
-              </div>
-            </div>
+            <StockList onSelect={setSelectedStock} />
           </div>
         </div>
       </section>
@@ -475,6 +518,11 @@ export default function LandingPage() {
           </div>
         </div>
       </footer>
+
+      {/* ── Stock Chart Modal ───────────────────── */}
+      {selectedStock && (
+        <StockChartModal stock={selectedStock} onClose={() => setSelectedStock(null)} />
+      )}
 
       {/* ── Inline styles for market layout (Tailwind can't do everything in static export) ── */}
       <style>{`

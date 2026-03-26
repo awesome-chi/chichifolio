@@ -36,7 +36,7 @@ const server = http.createServer((req, res) => {
 
     try {
       console.log('Deploying...');
-      execSync('cd /home/mapcube/chichifolio && git pull origin main && npm install && npm run build && pm2 restart chichifolio', {
+      execSync('cd /home/chi/chichifolio && git pull origin main && npm install && npm run build && pm2 restart chichifolio', {
         stdio: 'inherit'
       });
       console.log('Deploy complete!');

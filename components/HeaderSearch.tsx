@@ -1,12 +1,11 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import Link from 'next/link';
 import { Search, Star } from 'lucide-react';
 import { useApp } from '@/components/AppContext';
-import { getWatchlist, setWatchlist, searchStocks, fetchCompanyLogo, getStockLogoUrl, type WatchlistItem, type SearchResult } from '@/lib/watchlist';
+import { getWatchlist, setWatchlist, searchStocks, fetchCompanyLogo, type WatchlistItem, type SearchResult } from '@/lib/watchlist';
+import StockLogo from '@/components/StockLogo';
 
-/** 헤더 정중앙용 컴팩트 종목 검색 (높이 축소, 모바일 친화) */
 export default function HeaderSearch() {
   const { session, loaded } = useApp();
   const [query, setQuery] = useState('');
@@ -17,8 +16,8 @@ export default function HeaderSearch() {
   const [addingSymbol, setAddingSymbol] = useState<string | null>(null);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
-  const [logos, setLogos] = useState<Record<string, string | null>>({});
   const searchGenRef = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
   const userId = session?.userId ?? '';
 
   useEffect(() => {
@@ -36,34 +35,19 @@ export default function HeaderSearch() {
     timerRef.current = setTimeout(async () => {
       const gen = ++searchGenRef.current;
       const list = await searchStocks(query);
+      if (gen !== searchGenRef.current) return;
       setResults(list);
       setDropdownOpen(true);
       setSearching(false);
-      timerRef.current = null;
-      if (list.length > 0) {
-        Promise.all(
-          list.map(async (item) => ({
-            symbol: item.symbol,
-            logo: await getStockLogoUrl(item.symbol, item.name),
-          }))
-        ).then((pairs) => {
-          if (gen !== searchGenRef.current) return;
-          setLogos((prev) => {
-            const next = { ...prev };
-            for (const p of pairs) {
-              next[p.symbol] = p.logo ?? null;
-            }
-            return next;
-          });
-        });
-      }
-    }, 300);
+    }, 250);
     return () => { if (timerRef.current) clearTimeout(timerRef.current); };
   }, [query]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setDropdownOpen(false);
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) {
+        setDropdownOpen(false);
+      }
     }
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -90,77 +74,110 @@ export default function HeaderSearch() {
   };
 
   return (
-    <div className="relative flex-1 flex justify-center min-w-0 max-w-[220px] sm:max-w-[280px] mx-auto px-1 sm:px-2" ref={boxRef}>
-      <Search className="absolute left-2.5 sm:left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-500 pointer-events-none" />
-      <input
-        type="text"
-        value={query}
-        onChange={e => setQuery(e.target.value)}
-        placeholder="종목 검색"
-        className="w-full h-8 sm:h-8 bg-surface-hover border border-line rounded-lg pl-8 sm:pl-9 pr-8 text-[13px] sm:text-sm text-white placeholder-slate-500 outline-none focus:border-cyan-500/50 transition"
-      />
-      {searching && (
-        <span className="absolute right-2.5 sm:right-3 top-1/2 -translate-y-1/2 inline-block w-3.5 h-3.5 sm:w-4 sm:h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
-      )}
+    <div
+      ref={boxRef}
+      className="relative flex-1 min-w-0"
+      style={{ maxWidth: 340 }}
+    >
+      {/* 검색 입력 */}
+      <div
+        className="flex items-center gap-2 rounded-xl border transition-all"
+        style={{
+          background: 'rgba(15,30,50,0.9)',
+          borderColor: dropdownOpen || query ? 'rgba(6,182,212,0.5)' : 'rgba(23,42,69,0.8)',
+          padding: '0 12px',
+          height: 38,
+        }}
+      >
+        {searching ? (
+          <span className="w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
+        ) : (
+          <Search className="w-4 h-4 text-slate-500 shrink-0" />
+        )}
+        <input
+          ref={inputRef}
+          type="text"
+          value={query}
+          onChange={e => setQuery(e.target.value)}
+          onFocus={() => results.length > 0 && setDropdownOpen(true)}
+          placeholder="주식, ETF 검색"
+          className="flex-1 bg-transparent text-[13px] text-white placeholder-slate-500 outline-none min-w-0"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+        />
+        {query && (
+          <button
+            onClick={() => { setQuery(''); setResults([]); setDropdownOpen(false); inputRef.current?.focus(); }}
+            className="text-slate-500 hover:text-slate-300 transition shrink-0 text-[16px] leading-none pb-0.5"
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {/* 검색 결과 드롭다운 */}
       {dropdownOpen && results.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 rounded-xl border border-line bg-surface-card shadow-xl z-[200] overflow-hidden max-h-72 overflow-y-auto">
-          <ul className="py-0.5">
+        <div
+          className="absolute top-full mt-2 rounded-2xl border border-[#172a45] shadow-2xl overflow-hidden z-[200]"
+          style={{
+            background: '#0d1b2e',
+            left: 0,
+            right: 0,
+            minWidth: 300,
+            maxHeight: 420,
+            overflowY: 'auto',
+          }}
+        >
+          <div className="px-4 pt-3 pb-1.5">
+            <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">검색 결과</span>
+          </div>
+          <ul>
             {results.map((item, i) => {
               const added = watchlist.some(x => x.symbol === item.symbol);
               const adding = addingSymbol === item.symbol;
-              const logoUrl = logos[item.symbol] ?? null;
-              const initials = (item.name || item.symbol).replace(/\.[A-Z]+$/, '').slice(0, 2);
+              const isKR = /\.(KS|KQ)$/.test(item.symbol);
               return (
                 <li key={`${item.symbol}-${i}`}>
-                  <div className="flex items-center justify-between gap-2 px-3 py-2.5 sm:px-4 sm:py-3 hover:bg-surface-hover transition">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-surface-hover border border-line flex items-center justify-center text-[11px] sm:text-[12px] font-semibold text-cyan-400 overflow-hidden relative shrink-0">
-                        {logoUrl ? (
-                          <>
-                            <img
-                              src={logoUrl}
-                              alt=""
-                              className="w-full h-full object-contain"
-                              onError={e => {
-                                const t = e.target as HTMLImageElement;
-                                t.style.display = 'none';
-                                const s = t.nextElementSibling as HTMLElement;
-                                if (s) s.style.display = 'flex';
-                              }}
-                            />
-                            <span className="absolute inset-0 hidden items-center justify-center text-[11px] sm:text-[12px]">
-                              {initials}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="absolute inset-0 flex items-center justify-center text-[11px] sm:text-[12px]">
-                            {initials}
-                          </span>
-                        )}
+                  <div
+                    className="flex items-center gap-3 px-4 py-2.5 hover:bg-[#122030] transition cursor-pointer"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    {/* 로고 */}
+                    <StockLogo ticker={item.symbol} name={item.name} size={40} colorIndex={i} />
+
+                    {/* 종목 정보 */}
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-[14px] text-white truncate leading-tight">
+                        {item.name}
                       </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[13px] sm:text-[14px] font-semibold text-white truncate">
-                          {item.name}
-                        </div>
-                        <div className="text-[11px] sm:text-[11px] text-slate-500 truncate">
-                          {item.symbol}
-                        </div>
+                      <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[11px] text-slate-500">{item.symbol}</span>
+                        <span
+                          className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
+                          style={{
+                            background: isKR ? 'rgba(16,185,129,0.15)' : 'rgba(6,182,212,0.15)',
+                            color: isKR ? '#10b981' : '#06b6d4',
+                          }}
+                        >
+                          {isKR ? 'KRX' : 'US'}
+                        </span>
                       </div>
                     </div>
+
+                    {/* 관심종목 버튼 */}
                     <button
                       type="button"
                       onClick={e => toggleWatchlist(item, e)}
-                      className="shrink-0 p-2 rounded-lg hover:bg-surface-hover transition touch-manipulation min-h-[44px] min-w-[44px] flex items-center justify-center"
-                      title={session ? (added ? '관심종목 해제' : '관심종목 추가') : '로그인하면 관심종목에 추가할 수 있어요'}
+                      className="shrink-0 p-2 rounded-lg hover:bg-[#172a45] transition touch-manipulation min-h-[40px] min-w-[40px] flex items-center justify-center"
+                      title={session ? (added ? '관심종목 해제' : '관심종목 추가') : '로그인 후 이용 가능'}
                     >
                       {adding ? (
-                        <span className="inline-block w-4 h-4 sm:w-5 sm:h-5 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                        <span className="inline-block w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
                       ) : added ? (
-                        <Star className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 fill-amber-400" />
-                      ) : session ? (
-                        <Star className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500 hover:text-amber-400 transition" />
+                        <Star className="w-4 h-4 text-amber-400 fill-amber-400" />
                       ) : (
-                        <Star className="w-4 h-4 sm:w-5 sm:h-5 text-slate-500" />
+                        <Star className="w-4 h-4 text-slate-600 hover:text-amber-400 transition" />
                       )}
                     </button>
                   </div>
@@ -170,9 +187,15 @@ export default function HeaderSearch() {
           </ul>
         </div>
       )}
+
+      {/* 검색 결과 없음 */}
       {dropdownOpen && query.trim() && !searching && results.length === 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 rounded-xl border border-line bg-surface-card px-3 py-3 text-center text-slate-500 text-[13px] sm:text-sm z-[200]">
-          검색 결과 없음
+        <div
+          className="absolute top-full mt-2 rounded-2xl border border-[#172a45] px-4 py-5 text-center text-slate-500 text-[13px] z-[200]"
+          style={{ background: '#0d1b2e', left: 0, right: 0 }}
+        >
+          <div className="text-2xl mb-2">🔍</div>
+          <div>"{query}" 검색 결과가 없습니다</div>
         </div>
       )}
     </div>

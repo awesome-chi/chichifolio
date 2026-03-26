@@ -7,11 +7,119 @@ export const WATCHLIST_KEY = 'chichifolio-watchlist';
 export type WatchlistItem = { symbol: string; name: string; logo?: string };
 
 const STOCK_DB_LOCAL: { s: string; n: string }[] = [
-  { s: 'AAPL', n: 'Apple Inc.' }, { s: 'MSFT', n: 'Microsoft' }, { s: 'NVDA', n: 'NVIDIA' },
-  { s: 'GOOGL', n: 'Alphabet' }, { s: 'AMZN', n: 'Amazon' }, { s: 'META', n: 'Meta' },
-  { s: 'TSLA', n: 'Tesla' }, { s: 'BRK.B', n: 'Berkshire Hathaway' }, { s: '005930.KS', n: '삼성전자' },
-  { s: '000660.KS', n: 'SK하이닉스' }, { s: 'SPY', n: 'S&P 500 ETF' }, { s: 'QQQ', n: 'Nasdaq 100 ETF' },
-  { s: 'TQQQ', n: '나스닥100 3배 ETF' }, { s: 'VOO', n: 'Vanguard S&P 500' }, { s: 'VTI', n: 'Vanguard Total Stock Market' },
+  // US Mega Cap
+  { s: 'AAPL', n: 'Apple Inc.' }, { s: 'MSFT', n: 'Microsoft Corporation' }, { s: 'NVDA', n: 'NVIDIA Corporation' },
+  { s: 'GOOGL', n: 'Alphabet Inc.' }, { s: 'AMZN', n: 'Amazon.com Inc.' }, { s: 'META', n: 'Meta Platforms Inc.' },
+  { s: 'TSLA', n: 'Tesla Inc.' }, { s: 'BRK.B', n: 'Berkshire Hathaway' }, { s: 'JPM', n: 'JPMorgan Chase' },
+  { s: 'V', n: 'Visa Inc.' }, { s: 'MA', n: 'Mastercard' }, { s: 'AVGO', n: 'Broadcom Inc.' },
+  { s: 'NFLX', n: 'Netflix Inc.' }, { s: 'AMD', n: 'Advanced Micro Devices' }, { s: 'INTC', n: 'Intel Corporation' },
+  { s: 'ORCL', n: 'Oracle Corporation' }, { s: 'CRM', n: 'Salesforce Inc.' }, { s: 'ADBE', n: 'Adobe Inc.' },
+  { s: 'COST', n: 'Costco Wholesale' }, { s: 'WMT', n: 'Walmart Inc.' }, { s: 'DIS', n: 'Walt Disney Company' },
+  { s: 'PLTR', n: 'Palantir Technologies' }, { s: 'COIN', n: 'Coinbase Global' }, { s: 'CRWD', n: 'CrowdStrike Holdings' },
+  // Korean Blue Chip Stocks
+  { s: '005930.KS', n: '삼성전자' }, { s: '000660.KS', n: 'SK하이닉스' },
+  { s: '035420.KS', n: 'NAVER' }, { s: '035720.KS', n: '카카오' },
+  { s: '207940.KS', n: '삼성바이오로직스' }, { s: '068270.KS', n: '셀트리온' },
+  { s: '005380.KS', n: '현대차' }, { s: '000270.KS', n: '기아' },
+  { s: '051910.KS', n: 'LG화학' }, { s: '006400.KS', n: '삼성SDI' },
+  { s: '105560.KS', n: 'KB금융' }, { s: '055550.KS', n: '신한지주' },
+  { s: '086790.KS', n: '하나금융지주' }, { s: '316140.KS', n: '우리금융지주' },
+  { s: '003550.KS', n: 'LG' }, { s: '066570.KS', n: 'LG전자' },
+  { s: '012330.KS', n: '현대모비스' }, { s: '028260.KS', n: '삼성물산' },
+  { s: '017670.KS', n: 'SK텔레콤' }, { s: '030200.KS', n: 'KT' },
+  { s: '032830.KS', n: '삼성생명' }, { s: '018260.KS', n: '삼성에스디에스' },
+  { s: '096770.KS', n: 'SK이노베이션' }, { s: '010950.KS', n: 'S-Oil' },
+  { s: '009150.KS', n: '삼성전기' }, { s: '000100.KS', n: '유한양행' },
+  // KODEX ETFs (삼성자산운용)
+  { s: '069500.KS', n: 'KODEX 200' }, { s: '229200.KS', n: 'KODEX 코스닥150' },
+  { s: '122630.KS', n: 'KODEX 레버리지' }, { s: '252670.KS', n: 'KODEX 200선물인버스2X' },
+  { s: '379800.KS', n: 'KODEX 미국S&P500TR' }, { s: '273130.KS', n: 'KODEX 미국나스닥100TR' },
+  { s: '099140.KS', n: 'KODEX 고배당' }, { s: '114820.KS', n: 'KODEX 국고채3년' },
+  { s: '292190.KS', n: 'KODEX 미국FANG+' }, { s: '251340.KS', n: 'KODEX 선진국MSCI World' },
+  { s: '305080.KS', n: 'KODEX 200미국채혼합' }, { s: '280940.KS', n: 'KODEX 삼성그룹' },
+  { s: '214980.KS', n: 'KODEX 부동산' }, { s: '453810.KS', n: 'KODEX 인도Nifty50' },
+  { s: '446720.KS', n: 'KODEX 미국AI반도체나스닥' }, { s: '091160.KS', n: 'KODEX 반도체' },
+  { s: '091180.KS', n: 'KODEX 자동차' }, { s: '102960.KS', n: 'KODEX 코스피' },
+  { s: '148020.KS', n: 'KODEX 코스피 TR' }, { s: '287310.KS', n: 'KODEX 미국달러선물' },
+  // TIGER ETFs (미래에셋자산운용)
+  { s: '102110.KS', n: 'TIGER 200' }, { s: '133690.KS', n: 'TIGER 나스닥100' },
+  { s: '360750.KS', n: 'TIGER 미국S&P500TR' }, { s: '210780.KS', n: 'TIGER 고배당' },
+  { s: '143850.KS', n: 'TIGER 국채3년' }, { s: '195930.KS', n: 'TIGER 해외선진국MSCI(H)' },
+  { s: '329200.KS', n: 'TIGER 미국채10년선물' }, { s: '381180.KS', n: 'TIGER 미국나스닥100TR(H)' },
+  { s: '157490.KS', n: 'TIGER 미국S&P500선물(H)' }, { s: '117700.KS', n: 'TIGER 200IT' },
+  { s: '139220.KS', n: 'TIGER 200 에너지화학' }, { s: '227550.KS', n: 'TIGER 단기채권액티브' },
+  { s: '411060.KS', n: 'TIGER 미국테크TOP10INDXX' }, { s: '463050.KS', n: 'TIGER 미국AI빅테크10' },
+  { s: '455890.KS', n: 'TIGER 미국배당다우존스' }, { s: '458760.KS', n: 'TIGER 미국배당+7%프리미엄다우존스' },
+  // ACE ETFs (한국투자신탁운용, 구 ARIRANG)
+  { s: '152100.KS', n: 'ACE 코스피100' }, { s: '195980.KS', n: 'ACE 미국나스닥100' },
+  { s: '360200.KS', n: 'ACE 미국S&P500' }, { s: '161510.KS', n: 'ACE 고배당주' },
+  { s: '290130.KS', n: 'ACE 코스피200' }, { s: '411590.KS', n: 'ACE 미국빅테크TOP7Plus' },
+  { s: '441640.KS', n: 'ACE 미국500액티브' }, { s: '448290.KS', n: 'ACE 인도시장대표BankNifty' },
+  // PLUS ETFs (한화자산운용)
+  { s: '211560.KS', n: 'PLUS 고배당주' }, { s: '251600.KS', n: 'PLUS 코스피200' },
+  { s: '441680.KS', n: 'PLUS 미국S&P500' }, { s: '462900.KS', n: 'PLUS 미국나스닥100' },
+  { s: '472160.KS', n: 'PLUS 고배당주채권혼합' }, { s: '476550.KS', n: 'PLUS 미국배당다우존스' },
+  // KBSTAR ETFs (KB자산운용)
+  { s: '261220.KS', n: 'KBSTAR 200' }, { s: '322400.KS', n: 'KBSTAR 미국S&P500' },
+  { s: '411270.KS', n: 'KBSTAR 미국나스닥100' }, { s: '385550.KS', n: 'KBSTAR 고배당' },
+  { s: '460750.KS', n: 'KBSTAR 미국배당다우존스' },
+  // HANARO ETFs (NH-Amundi자산운용)
+  { s: '269530.KS', n: 'HANARO 200' }, { s: '400010.KS', n: 'HANARO 미국S&P500' },
+  { s: '441800.KS', n: 'HANARO 미국배당다우존스' }, { s: '466920.KS', n: 'HANARO 고배당' },
+  // SOL ETFs (신한자산운용)
+  { s: '447770.KS', n: 'SOL 미국S&P500' }, { s: '460870.KS', n: 'SOL 미국나스닥100' },
+  { s: '473640.KS', n: 'SOL 미국배당다우존스' }, { s: '462980.KS', n: 'SOL 고배당' },
+  // KINDEX ETFs (한국투자신탁운용 → ACE 전환 전)
+  { s: '214980.KS', n: 'KINDEX 부동산리츠' },
+  // Broad Market ETFs
+  { s: 'SPY', n: 'SPDR S&P 500 ETF Trust' }, { s: 'IVV', n: 'iShares Core S&P 500 ETF' },
+  { s: 'VOO', n: 'Vanguard S&P 500 ETF' }, { s: 'VTI', n: 'Vanguard Total Stock Market ETF' },
+  { s: 'QQQ', n: 'Invesco QQQ Trust (Nasdaq 100)' }, { s: 'QQQM', n: 'Invesco Nasdaq 100 ETF (Mini)' },
+  { s: 'TQQQ', n: 'ProShares UltraPro QQQ 3x ETF' }, { s: 'SQQQ', n: 'ProShares UltraPro Short QQQ' },
+  { s: 'VEA', n: 'Vanguard FTSE Developed Markets ETF' }, { s: 'VWO', n: 'Vanguard FTSE Emerging Markets ETF' },
+  { s: 'EFA', n: 'iShares MSCI EAFE ETF' }, { s: 'EEM', n: 'iShares MSCI Emerging Markets ETF' },
+  // Bond & Treasury ETFs
+  { s: 'SGOV', n: 'iShares 0-3 Month Treasury Bond ETF' }, { s: 'BIL', n: 'SPDR Bloomberg 1-3 Month T-Bill ETF' },
+  { s: 'SHV', n: 'iShares Short Treasury Bond ETF' }, { s: 'SHY', n: 'iShares 1-3 Year Treasury Bond ETF' },
+  { s: 'IEF', n: 'iShares 7-10 Year Treasury Bond ETF' }, { s: 'TLT', n: 'iShares 20+ Year Treasury Bond ETF' },
+  { s: 'BND', n: 'Vanguard Total Bond Market ETF' }, { s: 'AGG', n: 'iShares Core US Aggregate Bond ETF' },
+  { s: 'VGSH', n: 'Vanguard Short-Term Treasury ETF' }, { s: 'VGIT', n: 'Vanguard Intermediate-Term Treasury ETF' },
+  { s: 'VGLT', n: 'Vanguard Long-Term Treasury ETF' }, { s: 'SCHO', n: 'Schwab Short-Term US Treasury ETF' },
+  { s: 'SPTS', n: 'SPDR Portfolio Short Term Treasury ETF' }, { s: 'SCHR', n: 'Schwab Intermediate-Term US Treasury ETF' },
+  { s: 'LQD', n: 'iShares iBoxx Investment Grade Corporate Bond ETF' }, { s: 'HYG', n: 'iShares iBoxx High Yield Corporate Bond ETF' },
+  // Dividend ETFs
+  { s: 'JEPI', n: 'JPMorgan Equity Premium Income ETF' }, { s: 'JEPQ', n: 'JPMorgan Nasdaq Equity Premium Income ETF' },
+  { s: 'SCHD', n: 'Schwab US Dividend Equity ETF' }, { s: 'VYM', n: 'Vanguard High Dividend Yield ETF' },
+  { s: 'DVY', n: 'iShares Select Dividend ETF' }, { s: 'HDV', n: 'iShares Core High Dividend ETF' },
+  { s: 'DIVO', n: 'Amplify CWP Enhanced Dividend Income ETF' }, { s: 'DGRO', n: 'iShares Core Dividend Growth ETF' },
+  // Leveraged & Inverse ETFs
+  { s: 'SOXL', n: 'Direxion Daily Semiconductor Bull 3X ETF' }, { s: 'SOXS', n: 'Direxion Daily Semiconductor Bear 3X ETF' },
+  { s: 'SPXL', n: 'Direxion Daily S&P 500 Bull 3X ETF' }, { s: 'SPXS', n: 'Direxion Daily S&P 500 Bear 3X ETF' },
+  { s: 'FNGU', n: 'MicroSectors FANG+ 3X Leveraged ETN' }, { s: 'FNGD', n: 'MicroSectors FANG+ -3X Inverse ETN' },
+  { s: 'UPRO', n: 'ProShares UltraPro S&P 500 3x ETF' }, { s: 'SPXU', n: 'ProShares UltraPro Short S&P 500' },
+  { s: 'SSO', n: 'ProShares Ultra S&P 500 2x ETF' }, { s: 'SDS', n: 'ProShares UltraShort S&P 500 2x' },
+  { s: 'QLD', n: 'ProShares Ultra QQQ 2x ETF' }, { s: 'QID', n: 'ProShares UltraShort QQQ 2x' },
+  // Sector ETFs
+  { s: 'XLK', n: 'Technology Select Sector SPDR ETF' }, { s: 'XLF', n: 'Financial Select Sector SPDR ETF' },
+  { s: 'XLE', n: 'Energy Select Sector SPDR ETF' }, { s: 'XLV', n: 'Health Care Select Sector SPDR ETF' },
+  { s: 'XLI', n: 'Industrial Select Sector SPDR ETF' }, { s: 'XLY', n: 'Consumer Discretionary Select Sector SPDR ETF' },
+  { s: 'XLP', n: 'Consumer Staples Select Sector SPDR ETF' }, { s: 'XLRE', n: 'Real Estate Select Sector SPDR ETF' },
+  { s: 'SMH', n: 'VanEck Semiconductor ETF' }, { s: 'SOXX', n: 'iShares Semiconductor ETF' },
+  { s: 'AIQ', n: 'Global X Artificial Intelligence & Technology ETF' }, { s: 'BOTZ', n: 'Global X Robotics & AI ETF' },
+  { s: 'CLOU', n: 'Global X Cloud Computing ETF' }, { s: 'HACK', n: 'ETFMG Prime Cyber Security ETF' },
+  { s: 'CIBR', n: 'First Trust Nasdaq Cybersecurity ETF' }, { s: 'FINX', n: 'Global X FinTech ETF' },
+  // SPDR Portfolio Series
+  { s: 'SPMD', n: 'SPDR Portfolio S&P 400 Mid Cap ETF' }, { s: 'SPSM', n: 'SPDR Portfolio S&P 600 Small Cap ETF' },
+  { s: 'SPYG', n: 'SPDR Portfolio S&P 500 Growth ETF' }, { s: 'SPYV', n: 'SPDR Portfolio S&P 500 Value ETF' },
+  { s: 'SPYM', n: 'SPDR Portfolio S&P 500 Momentum ETF' }, { s: 'SPLG', n: 'SPDR Portfolio S&P 500 ETF' },
+  // Commodity & Alternative ETFs
+  { s: 'GLD', n: 'SPDR Gold Shares ETF' }, { s: 'IAU', n: 'iShares Gold Trust ETF' },
+  { s: 'SLV', n: 'iShares Silver Trust ETF' }, { s: 'USO', n: 'United States Oil Fund ETF' },
+  { s: 'DBA', n: 'Invesco DB Agriculture Fund ETF' },
+  // Innovation / Thematic ETFs
+  { s: 'ARKK', n: 'ARK Innovation ETF' }, { s: 'ARKG', n: 'ARK Genomic Revolution ETF' },
+  { s: 'ARKW', n: 'ARK Next Generation Internet ETF' }, { s: 'ARKF', n: 'ARK Fintech Innovation ETF' },
+  { s: 'WCLD', n: 'WisdomTree Cloud Computing Fund ETF' },
 ];
 
 /** 해외주식 한국어 검색용: 한국어 이름 → [심볼, 영문명]. 영문/티커 검색 API에 넘길 보조 검색어 생성 */
@@ -123,7 +231,7 @@ async function searchFmp(query: string): Promise<SearchResult[]> {
   }
 }
 
-/** Finnhub search (기존) */
+/** Finnhub search */
 async function searchFinnhub(query: string): Promise<SearchResult[]> {
   if (!FINNHUB_KEY) return [];
   try {
@@ -132,13 +240,54 @@ async function searchFinnhub(query: string): Promise<SearchResult[]> {
     );
     const data = await res.json();
     if (data?.result?.length) {
+      const BLOCKED = new Set(['Crypto', 'Currency', 'Index', 'Forex', 'Cryptocurrency']);
       return data.result
-        .filter((r: any) => ['Common Stock', 'ETP', 'ETF', 'REIT'].includes(r.type))
-        .slice(0, 12)
+        .filter((r: any) => !BLOCKED.has(r.type))
+        .slice(0, 15)
         .map((r: any) => ({ symbol: r.symbol, name: r.description || r.symbol }));
     }
   } catch {}
   return [];
+}
+
+/** 서버사이드 Yahoo Finance 검색 (API 키 불필요) */
+async function searchYahoo(query: string): Promise<SearchResult[]> {
+  if (typeof window === 'undefined') return [];
+  try {
+    const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
+
+/** 티커처럼 생긴 쿼리에 대해 Finnhub/FMP 프로필 직접 조회 */
+async function lookupTickerDirect(symbol: string): Promise<SearchResult | null> {
+  const sym = symbol.toUpperCase().trim();
+  if (FINNHUB_KEY) {
+    try {
+      const res = await fetch(
+        `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(sym)}&token=${FINNHUB_KEY}`
+      );
+      const data = await res.json();
+      if (data?.name && data?.ticker) {
+        return { symbol: data.ticker, name: data.name };
+      }
+    } catch {}
+  }
+  if (FMP_API_KEY) {
+    try {
+      const res = await fetch(
+        `https://financialmodelingprep.com/stable/profile?symbol=${encodeURIComponent(sym)}&apikey=${FMP_API_KEY}`
+      );
+      const data = await res.json();
+      if (Array.isArray(data) && data[0]?.symbol) {
+        return { symbol: data[0].symbol, name: data[0].companyName || data[0].name || sym };
+      }
+    } catch {}
+  }
+  return null;
 }
 
 /** 검색어와 결과의 관련도 점수. boostSymbols 있으면 해당 심볼에 가산점 (한국어 검색 매칭) */
@@ -189,9 +338,18 @@ export async function searchStocks(query: string): Promise<SearchResult[]> {
     .map((st) => ({ symbol: st.s, name: st.n }));
 
   const apiCalls: Promise<SearchResult[]>[] = [];
+  // 서버사이드 Yahoo Finance 검색: 항상 호출 (API 키 불필요)
+  for (const term of searchTerms) {
+    apiCalls.push(searchYahoo(term));
+  }
   for (const term of searchTerms) {
     if (FMP_API_KEY) apiCalls.push(searchFmp(term));
     if (FINNHUB_KEY) apiCalls.push(searchFinnhub(term));
+  }
+  // 티커처럼 생긴 쿼리(1~8자, 영숫자+점)는 프로필 직접 조회로 보완
+  const isTickerLike = /^[A-Z0-9]{1,8}(\.(KS|KQ))?$/i.test(q) && !hasHangul(q);
+  if (isTickerLike) {
+    apiCalls.push(lookupTickerDirect(q).then(r => r ? [r] : []));
   }
 
   const apiResults = apiCalls.length > 0 ? await Promise.all(apiCalls) : [];
@@ -290,6 +448,32 @@ export async function fetchQuoteDetail(ticker: string): Promise<QuoteDetail | nu
     }
   } catch {}
   return null;
+}
+
+export async function saveWatchlistToCloud(userId: string, items: WatchlistItem[]): Promise<void> {
+  try {
+    await fetch('/api/watchlist', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, items }),
+    });
+  } catch {}
+}
+
+export async function loadWatchlistFromCloud(userId: string): Promise<WatchlistItem[] | null> {
+  try {
+    const res = await fetch(`/api/watchlist?userId=${encodeURIComponent(userId)}`);
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (!Array.isArray(data)) return null;
+    return data.map((x: any) => ({
+      symbol: x.symbol ?? '',
+      name: x.name ?? x.symbol ?? '',
+      logo: x.logo ?? undefined,
+    }));
+  } catch {
+    return null;
+  }
 }
 
 /** Finnhub stock candles: resolution 1,5,15,30,60 (min), D, W, M. from/to Unix seconds */

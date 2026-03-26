@@ -6,33 +6,13 @@ import { Search, Plus, Trash2, Star, LogIn, UserPlus } from 'lucide-react';
 import { useApp, C } from '@/components/AppContext';
 import AppNavBar from '@/components/AppNavBar';
 import StockDetailSheet from '@/components/StockDetailSheet';
-import { getWatchlist, setWatchlist, searchStocks, fetchCompanyLogo, type WatchlistItem, type SearchResult } from '@/lib/watchlist';
+import { getWatchlist, setWatchlist, saveWatchlistToCloud, loadWatchlistFromCloud, searchStocks, fetchCompanyLogo, type WatchlistItem, type SearchResult } from '@/lib/watchlist';
+import StockLogo from '@/components/StockLogo';
 
-const FINNHUB_KEY = process.env.NEXT_PUBLIC_FINNHUB_KEY || '';
 const PALETTE = ['#06b6d4', '#3b82f6', '#f59e0b', '#a855f7', '#ec4899', '#10b981'];
 
 function isDomestic(ticker: string): boolean {
   return /\.(KS|KQ)$/.test(ticker) || /^\d{6}$/.test(ticker.replace(/\.(KS|KQ)$/, ''));
-}
-
-async function fetchQuote(ticker: string): Promise<{ price: number; changePct: number; currency: string } | null> {
-  if (!FINNHUB_KEY) return null;
-  const sym = ticker.includes('.') ? ticker : ticker.length === 6 && /^\d+$/.test(ticker) ? `${ticker}.KS` : ticker;
-  try {
-    const res = await fetch(
-      `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(sym)}&token=${FINNHUB_KEY}`
-    );
-    const data = await res.json();
-    if (data?.c != null && data.c > 0) {
-      const changePct = data.dp != null ? data.dp : 0;
-      return {
-        price: data.c,
-        changePct,
-        currency: isDomestic(ticker) ? 'KRW' : 'USD',
-      };
-    }
-  } catch {}
-  return null;
 }
 
 export default function WatchlistPage() {
@@ -51,7 +31,14 @@ export default function WatchlistPage() {
   const userId = session?.userId ?? '';
 
   useEffect(() => {
-    if (userId) setWatchlistState(getWatchlist(userId));
+    if (!userId) return;
+    setWatchlistState(getWatchlist(userId));
+    loadWatchlistFromCloud(userId).then(cloud => {
+      if (cloud) {
+        setWatchlistState(cloud);
+        setWatchlist(userId, cloud);
+      }
+    });
   }, [userId]);
 
   useEffect(() => {
@@ -59,13 +46,17 @@ export default function WatchlistPage() {
     const tickers = watchlist.map(w => w.symbol);
     let cancelled = false;
     (async () => {
-      const next: Record<string, { price: number; changePct: number; currency: string }> = {};
-      for (const t of tickers) {
-        if (cancelled) return;
-        const q = await fetchQuote(t);
-        if (q) next[t] = q;
-      }
-      if (!cancelled) setPrices(prev => ({ ...prev, ...next }));
+      try {
+        const res = await fetch('/api/prices', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tickers }),
+        });
+        if (!cancelled && res.ok) {
+          const { prices: priceMap } = await res.json();
+          setPrices(priceMap);
+        }
+      } catch {}
     })();
     return () => { cancelled = true; };
   }, [watchlist.map(w => w.symbol).join(',')]);
@@ -109,6 +100,7 @@ export default function WatchlistPage() {
     next.push({ symbol: sym, name: item.name || sym, logo: logo ?? undefined });
     setWatchlistState(next);
     setWatchlist(userId, next);
+    saveWatchlistToCloud(userId, next);
     setQuery('');
     setResults([]);
     setDropdownOpen(false);
@@ -118,6 +110,7 @@ export default function WatchlistPage() {
     const next = watchlist.filter(x => x.symbol !== symbol);
     setWatchlistState(next);
     setWatchlist(userId, next);
+    saveWatchlistToCloud(userId, next);
   };
 
   if (!loaded) {
@@ -191,28 +184,41 @@ export default function WatchlistPage() {
                   className="absolute top-full left-0 right-0 mt-1 rounded-xl border border-line bg-surface-card shadow-xl z-50 overflow-hidden"
                   style={{ maxHeight: 320 }}
                 >
-                  <ul className="py-1 overflow-y-auto max-h-80">
+                  <div className="px-4 pt-3 pb-1">
+                    <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">검색 결과</span>
+                  </div>
+                  <ul className="pb-2 overflow-y-auto max-h-80">
                     {results.map((item, i) => {
                       const added = watchlist.some(x => x.symbol === item.symbol);
+                      const isKR = /\.(KS|KQ)$/.test(item.symbol);
                       return (
                         <li key={`${item.symbol}-${i}`}>
                           <button
                             type="button"
                             onClick={() => !added && addItem(item)}
                             disabled={added}
-                            className="w-full flex items-center justify-between gap-3 px-4 py-3 min-h-[52px] text-left hover:bg-surface-hover transition disabled:opacity-50 disabled:cursor-default touch-manipulation"
+                            className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-surface-hover transition disabled:cursor-default touch-manipulation"
                           >
-                            <div className="min-w-0">
-                              <span className="font-semibold text-cyan-400 block truncate">{item.symbol}</span>
-                              <span className="text-xs text-slate-500 truncate block">{item.name}</span>
+                            <StockLogo ticker={item.symbol} name={item.name} size={42} colorIndex={i} />
+                            <div className="min-w-0 flex-1">
+                              <div className="font-semibold text-[14px] text-white truncate leading-tight">{item.name}</div>
+                              <div className="flex items-center gap-2 mt-0.5">
+                                <span className="text-[11px] text-slate-500">{item.symbol}</span>
+                                <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-md"
+                                  style={{ background: isKR ? 'rgba(16,185,129,0.15)' : 'rgba(6,182,212,0.15)', color: isKR ? '#10b981' : '#06b6d4' }}>
+                                  {isKR ? 'KRX' : 'US'}
+                                </span>
+                              </div>
                             </div>
-                            {addingSymbol === item.symbol ? (
-                              <span className="inline-block w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin shrink-0" />
-                            ) : added ? (
-                              <span className="text-[11px] text-slate-500 shrink-0">추가됨</span>
-                            ) : (
-                              <Plus className="w-4 h-4 text-cyan-400 shrink-0" />
-                            )}
+                            <div className="shrink-0">
+                              {addingSymbol === item.symbol ? (
+                                <span className="inline-block w-4 h-4 border-2 border-cyan-400 border-t-transparent rounded-full animate-spin" />
+                              ) : added ? (
+                                <span className="text-[11px] text-slate-500 px-2 py-1 rounded-lg bg-slate-800">추가됨</span>
+                              ) : (
+                                <span className="flex items-center justify-center w-8 h-8 rounded-full bg-cyan-500/15 text-cyan-400 text-lg font-light">+</span>
+                              )}
+                            </div>
                           </button>
                         </li>
                       );
@@ -263,7 +269,7 @@ export default function WatchlistPage() {
                     : `$${quote.price.toFixed(2)}`
                   : '—';
                 const pctStr = quote != null ? `${quote.changePct >= 0 ? '+' : ''}${quote.changePct.toFixed(2)}%` : '—';
-                const pctColor = quote != null ? (quote.changePct >= 0 ? '#10b981' : '#f43f5e') : C.muted;
+                const pctColor = quote != null ? (quote.changePct >= 0 ? C.gain : C.loss) : C.muted;
                 const color = PALETTE[idx % PALETTE.length];
                 const initial = item.symbol.replace(/\.(KS|KQ)$/, '').slice(0, 2).toUpperCase();
                 return (
@@ -272,26 +278,13 @@ export default function WatchlistPage() {
                     className="rounded-xl border border-line flex items-center gap-4 px-4 py-3 min-h-[64px] transition hover:border-slate-600 touch-manipulation"
                     style={{ background: C.card }}
                   >
-                    {item.logo ? (
-                      <div className="w-11 h-11 rounded-full overflow-hidden bg-surface-hover shrink-0 flex items-center justify-center">
-                        {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={item.logo} alt="" className="object-cover w-full h-full" />
-                      </div>
-                    ) : (
-                      <div
-                        className="w-11 h-11 rounded-full flex items-center justify-center text-white font-bold text-sm shrink-0"
-                        style={{ background: color }}
-                      >
-                        {initial}
-                      </div>
-                    )}
+                    <StockLogo ticker={item.symbol} name={item.name} size={46} colorIndex={idx} />
                     <div className="min-w-0 flex-1">
-                      <div className="font-semibold text-white text-[15px] truncate">{line1}</div>
-                      <div className="flex items-baseline gap-2 mt-0.5">
+                      <div className="font-semibold text-white text-[15px] truncate leading-tight">{item.name}</div>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className="text-[11px] text-slate-500">{item.symbol}</span>
                         <span className="text-sm font-semibold tabular-nums text-white">{priceStr}</span>
-                        <span className="text-[13px] font-semibold tabular-nums" style={{ color: pctColor }}>
-                          {pctStr}
-                        </span>
+                        <span className="text-[12px] font-semibold tabular-nums" style={{ color: pctColor }}>{pctStr}</span>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">

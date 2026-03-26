@@ -12,12 +12,27 @@ import {
   CartesianGrid,
 } from 'recharts';
 import { C } from '@/components/AppContext';
-import {
-  fetchQuoteDetail,
-  fetchStockCandles,
-  type QuoteDetail,
-  type CandlePoint,
-} from '@/lib/watchlist';
+import { type QuoteDetail, type CandlePoint } from '@/lib/watchlist';
+
+async function fetchQuoteDetail(symbol: string): Promise<QuoteDetail | null> {
+  try {
+    const res = await fetch(`/api/stock/quote?symbol=${encodeURIComponent(symbol)}`);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+async function fetchStockCandles(symbol: string, resolution: string): Promise<CandlePoint[]> {
+  try {
+    const res = await fetch(`/api/stock/candles?symbol=${encodeURIComponent(symbol)}&resolution=${resolution}`);
+    if (!res.ok) return [];
+    return await res.json();
+  } catch {
+    return [];
+  }
+}
 
 type Resolution = 'D' | 'W' | 'M';
 
@@ -27,15 +42,6 @@ const RESOLUTION_LABELS: { key: Resolution; label: string }[] = [
   { key: 'M', label: '1달' },
 ];
 
-function getFromTo(resolution: Resolution): { from: number; to: number } {
-  const to = Math.floor(Date.now() / 1000);
-  const day = 24 * 60 * 60;
-  let from: number;
-  if (resolution === 'D') from = to - 30 * day;
-  else if (resolution === 'W') from = to - 12 * 7 * day;
-  else from = to - 365 * day;
-  return { from, to };
-}
 
 function formatChartDate(t: number, res: Resolution): string {
   const d = new Date(t * 1000);
@@ -82,8 +88,7 @@ export default function StockDetailSheet({
   useEffect(() => {
     let cancelled = false;
     setLoadingChart(true);
-    const { from, to } = getFromTo(resolution);
-    fetchStockCandles(symbol, resolution, from, to).then((data) => {
+    fetchStockCandles(symbol, resolution).then((data) => {
       if (!cancelled) {
         setCandles(data);
         setLoadingChart(false);

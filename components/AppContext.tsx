@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { getSupabase } from '@/lib/supabase';
+import { saveAvatar, saveAvatarToCloud, loadAvatarFromCloud, type AvatarData } from '@/lib/avatar';
 
 const SESSION_KEY = "chichifolio-session";
 const USER_COLORS = ["#06b6d4","#3b82f6","#f59e0b","#a855f7","#ec4899"];
@@ -41,6 +42,7 @@ interface AppContextType {
   deleteUser: (id: string) => Promise<void>;
   saveHoldings: (userId: string, holdings: any[]) => Promise<void>;
   refreshUsers: () => Promise<void>;
+  saveUserAvatar: (userId: string, data: AvatarData) => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | null>(null);
@@ -60,21 +62,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
     } catch {}
   }, []);
 
+  const saveUserAvatar = useCallback(async (userId: string, data: AvatarData) => {
+    saveAvatar(userId, data);
+    await saveAvatarToCloud(userId, data);
+    setUsers(prev => prev.map(u => u.id !== userId ? u : { ...u, avatar: data }));
+  }, []);
+
+  const loadUserAvatar = useCallback(async (userId: string) => {
+    const cloud = await loadAvatarFromCloud(userId);
+    if (cloud) {
+      saveAvatar(userId, cloud);
+      setUsers(prev => prev.map(u => u.id !== userId ? u : { ...u, avatar: cloud }));
+    }
+  }, []);
+
   useEffect(() => {
     async function init() {
+      let userId: string | null = null;
       try {
         const sess = localStorage.getItem(SESSION_KEY);
-        if (sess) setSession(JSON.parse(sess));
+        if (sess) { const parsed = JSON.parse(sess); setSession(parsed); userId = parsed.userId; }
       } catch {}
       try {
         await loadAllUsers();
       } catch (e) {
         console.error('[ChiChiFolio] Failed to load users from Supabase:', e);
       }
+      if (userId) loadUserAvatar(userId).catch(() => {});
       setLoaded(true);
     }
     init();
-  }, [loadAllUsers]);
+  }, [loadAllUsers, loadUserAvatar]);
 
   const login = useCallback(async (name: string, password: string) => {
     const { data, error } = await rpc('fn_login', { p_name: name, p_password: password });
@@ -95,8 +113,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     const sess = { userId: user.id };
     setSession(sess);
     try { localStorage.setItem(SESSION_KEY, JSON.stringify(sess)); } catch {}
+    loadUserAvatar(user.id).catch(() => {});
     return { user };
-  }, []);
+  }, [loadUserAvatar]);
 
   const logout = useCallback(() => {
     setSession(null);
@@ -216,7 +235,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       users, session, loaded,
       login, logout, signup, adminLogin,
       addUser, updateUser, deleteUser,
-      saveHoldings, refreshUsers: loadAllUsers,
+      saveHoldings, refreshUsers: loadAllUsers, saveUserAvatar,
     }}>
       {children}
     </AppContext.Provider>
@@ -229,7 +248,7 @@ export function useApp() {
   return ctx;
 }
 
-export const C = { bg:"#07111f", card:"#0f1e32", border:"#172a45", accent:"#06b6d4", gain:"#10b981", loss:"#f43f5e", text:"#e2e8f0", muted:"#64748b", subtle:"#334155", admin:"#f59e0b" };
+export const C = { bg:"#07111f", card:"#0f1e32", border:"#172a45", accent:"#06b6d4", gain:"#ef4444", loss:"#3b82f6", text:"#e2e8f0", muted:"#64748b", subtle:"#334155", admin:"#f59e0b" };
 export const mono = { fontVariantNumeric:"tabular-nums", fontFamily:"'SF Mono','Fira Code',monospace" } as const;
 export const cardSt = { background:C.card, border:`1px solid ${C.border}`, borderRadius:14, padding:20 };
 export const btnPrimary = { background:C.accent, border:"none", color:"#fff", borderRadius:10, padding:"12px 0", minHeight:48, cursor:"pointer", fontSize:15, fontWeight:700, transition:"all .2s" };
