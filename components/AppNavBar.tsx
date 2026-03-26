@@ -8,7 +8,7 @@ import {
   BarChart3, PieChart, TrendingUp,
   Calendar, History, Coins,
   Search, Trophy, Flame,
-  LineChart, RefreshCw, Shield,
+  LineChart, RefreshCw, Shield, Zap,
 } from 'lucide-react';
 import { useApp } from '@/components/AppContext';
 import HeaderSearch from '@/components/HeaderSearch';
@@ -55,9 +55,10 @@ const NAV = [
     badge: 'BETA',
     desc: '심층 포트폴리오 분석',
     sub: [
-      { icon: LineChart,  label: '포트폴리오 분석', desc: '수익·손실 심층 분석',  href: '#soon', badge: '준비중' },
-      { icon: RefreshCw, label: '리밸런싱 전략',   desc: '최적 비중 자동 추천',  href: '#soon', badge: '준비중' },
-      { icon: Shield,    label: '리스크 분석',     desc: '변동성·리스크 측정',  href: '#soon', badge: '준비중' },
+      { icon: Zap,        label: '단기투자',        desc: '단타 전략 종목 스크리너',  href: '/analysis/short-term' },
+      { icon: LineChart,  label: '포트폴리오 분석', desc: '수익·손실 심층 분석',      href: '#soon', badge: '준비중' },
+      { icon: RefreshCw, label: '리밸런싱 전략',   desc: '최적 비중 자동 추천',       href: '#soon', badge: '준비중' },
+      { icon: Shield,    label: '리스크 분석',     desc: '변동성·리스크 측정',        href: '#soon', badge: '준비중' },
     ],
   },
 ];
