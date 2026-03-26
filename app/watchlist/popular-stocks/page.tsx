@@ -1,7 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Flame, RefreshCw, TrendingUp, TrendingDown, BarChart2, DollarSign } from 'lucide-react';
+import {
+  Flame, RefreshCw, TrendingUp, TrendingDown,
+  BarChart2, DollarSign, TrendingUp as ReturnIcon,
+} from 'lucide-react';
 import AppNavBar from '@/components/AppNavBar';
 import StockLogo from '@/components/StockLogo';
 import StockDetailSheet from '@/components/StockDetailSheet';
@@ -16,20 +19,23 @@ type PopularItem = {
   volume: number | null;
   avgVolume: number | null;
   marketCap: number | null;
+  returnMonth: number | null;
+  returnYear: number | null;
 };
 
 type Market = 'all' | 'us' | 'kr';
 type SortBy = 'volume' | 'marketcap';
+type ReturnPeriod = '1m' | '1y';
 
 const MARKET_TABS: { key: Market; label: string }[] = [
   { key: 'all', label: '전체' },
-  { key: 'us', label: '미국' },
-  { key: 'kr', label: '국내' },
+  { key: 'us',  label: '미국' },
+  { key: 'kr',  label: '국내' },
 ];
 
 const SORT_TABS: { key: SortBy; label: string; icon: React.ElementType }[] = [
-  { key: 'volume', label: '거래량순', icon: BarChart2 },
-  { key: 'marketcap', label: '시가총액순', icon: DollarSign },
+  { key: 'volume',    label: '거래량순',   icon: BarChart2   },
+  { key: 'marketcap', label: '시가총액순', icon: DollarSign  },
 ];
 
 function RankBadge({ rank }: { rank: number }) {
@@ -45,13 +51,13 @@ function formatVolume(vol: number | null, currency: string): string {
   if (vol == null) return '—';
   if (currency === 'KRW') {
     if (vol >= 1_000_000_000_000) return `${(vol / 1_000_000_000_000).toFixed(1)}조`;
-    if (vol >= 100_000_000) return `${(vol / 100_000_000).toFixed(1)}억`;
-    if (vol >= 10_000) return `${(vol / 10_000).toFixed(0)}만`;
+    if (vol >= 100_000_000)       return `${(vol / 100_000_000).toFixed(1)}억`;
+    if (vol >= 10_000)            return `${(vol / 10_000).toFixed(0)}만`;
     return vol.toLocaleString('ko-KR');
   }
   if (vol >= 1_000_000_000) return `${(vol / 1_000_000_000).toFixed(1)}B`;
-  if (vol >= 1_000_000) return `${(vol / 1_000_000).toFixed(1)}M`;
-  if (vol >= 1_000) return `${(vol / 1_000).toFixed(1)}K`;
+  if (vol >= 1_000_000)     return `${(vol / 1_000_000).toFixed(1)}M`;
+  if (vol >= 1_000)         return `${(vol / 1_000).toFixed(1)}K`;
   return vol.toLocaleString();
 }
 
@@ -59,12 +65,12 @@ function formatMarketCap(mc: number | null, currency: string): string {
   if (mc == null) return '—';
   if (currency === 'KRW') {
     if (mc >= 1_000_000_000_000) return `₩${(mc / 1_000_000_000_000).toFixed(1)}조`;
-    if (mc >= 100_000_000) return `₩${(mc / 100_000_000).toFixed(0)}억`;
+    if (mc >= 100_000_000)       return `₩${(mc / 100_000_000).toFixed(0)}억`;
     return `₩${mc.toLocaleString('ko-KR')}`;
   }
   if (mc >= 1_000_000_000_000) return `$${(mc / 1_000_000_000_000).toFixed(2)}T`;
-  if (mc >= 1_000_000_000) return `$${(mc / 1_000_000_000).toFixed(1)}B`;
-  if (mc >= 1_000_000) return `$${(mc / 1_000_000).toFixed(0)}M`;
+  if (mc >= 1_000_000_000)     return `$${(mc / 1_000_000_000).toFixed(1)}B`;
+  if (mc >= 1_000_000)         return `$${(mc / 1_000_000).toFixed(0)}M`;
   return `$${mc.toLocaleString()}`;
 }
 
@@ -74,15 +80,21 @@ function formatPrice(item: PopularItem): string {
   return `$${item.price.toFixed(2)}`;
 }
 
+function formatReturn(ret: number | null): string {
+  if (ret == null) return '—';
+  return (ret >= 0 ? '+' : '') + ret.toFixed(2) + '%';
+}
+
 const isKR = (symbol: string) => /\.(KS|KQ)$/.test(symbol);
 
 export default function PopularStocksPage() {
-  const [market, setMarket] = useState<Market>('all');
-  const [sortBy, setSortBy] = useState<SortBy>('volume');
-  const [items, setItems] = useState<PopularItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [market, setMarket]           = useState<Market>('all');
+  const [sortBy, setSortBy]           = useState<SortBy>('volume');
+  const [returnPeriod, setReturnPeriod] = useState<ReturnPeriod>('1m');
+  const [items, setItems]             = useState<PopularItem[]>([]);
+  const [loading, setLoading]         = useState(true);
   const [lastUpdated, setLastUpdated] = useState<string>('');
-  const [detailItem, setDetailItem] = useState<PopularItem | null>(null);
+  const [detailItem, setDetailItem]   = useState<PopularItem | null>(null);
 
   const fetchData = async (m: Market, s: SortBy) => {
     setLoading(true);
@@ -135,8 +147,8 @@ export default function PopularStocksPage() {
               className="flex-1 py-2 rounded-lg text-[13px] font-semibold transition"
               style={{
                 background: market === tab.key ? '#f97316' + '20' : 'transparent',
-                color: market === tab.key ? '#f97316' : '#64748b',
-                border: market === tab.key ? '1px solid #f9731640' : '1px solid transparent',
+                color:      market === tab.key ? '#f97316' : '#64748b',
+                border:     market === tab.key ? '1px solid #f9731640' : '1px solid transparent',
               }}
             >
               {tab.label}
@@ -144,27 +156,52 @@ export default function PopularStocksPage() {
           ))}
         </div>
 
-        {/* 정렬 탭 */}
-        <div className="flex gap-2 mb-5">
-          {SORT_TABS.map(tab => {
-            const Icon = tab.icon;
-            const active = sortBy === tab.key;
-            return (
+        {/* 정렬 탭 + 수익률 기간 선택 */}
+        <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+          {/* 정렬 */}
+          <div className="flex gap-2">
+            {SORT_TABS.map(tab => {
+              const Icon = tab.icon;
+              const active = sortBy === tab.key;
+              return (
+                <button
+                  key={tab.key}
+                  onClick={() => setSortBy(tab.key)}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition border touch-manipulation"
+                  style={{
+                    background:  active ? '#f97316' + '18' : 'transparent',
+                    color:       active ? '#f97316' : '#64748b',
+                    borderColor: active ? '#f9731640' : '#1e293b',
+                  }}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* 수익률 기간 토글 */}
+          <div
+            className="flex items-center gap-1 rounded-lg p-1 border"
+            style={{ background: '#0a1626', borderColor: '#172a45' }}
+          >
+            <ReturnIcon className="w-3 h-3 text-slate-600 ml-1" />
+            {(['1m', '1y'] as ReturnPeriod[]).map(period => (
               <button
-                key={tab.key}
-                onClick={() => setSortBy(tab.key)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[12px] font-semibold transition border"
+                key={period}
+                onClick={() => setReturnPeriod(period)}
+                className="px-2.5 py-1 rounded-md text-[11px] font-bold transition touch-manipulation"
                 style={{
-                  background: active ? '#f97316' + '18' : 'transparent',
-                  color: active ? '#f97316' : '#64748b',
-                  borderColor: active ? '#f9731640' : '#1e293b',
+                  background:  returnPeriod === period ? '#a855f720' : 'transparent',
+                  color:       returnPeriod === period ? '#a855f7' : '#64748b',
+                  border:      returnPeriod === period ? '1px solid #a855f740' : '1px solid transparent',
                 }}
               >
-                <Icon className="w-3.5 h-3.5" />
-                {tab.label}
+                {period === '1m' ? '월평균' : '연평균'}
               </button>
-            );
-          })}
+            ))}
+          </div>
         </div>
 
         {/* 리스트 */}
@@ -184,7 +221,7 @@ export default function PopularStocksPage() {
         ) : (
           <>
             {/* 컬럼 헤더 */}
-            <div className="flex items-center gap-3 px-4 mb-2">
+            <div className="flex items-center gap-3 px-3 mb-2">
               <span className="w-5 shrink-0" />
               <span className="w-10 shrink-0" />
               <div className="flex-1 min-w-0">
@@ -200,6 +237,11 @@ export default function PopularStocksPage() {
                   {sortBy === 'volume' ? '시가총액' : '거래량'}
                 </span>
               </div>
+              <div className="text-right shrink-0 w-[58px]">
+                <span className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: '#a855f7' }}>
+                  {returnPeriod === '1m' ? '1개월' : '1년'}
+                </span>
+              </div>
             </div>
 
             <ul className="space-y-2.5">
@@ -207,12 +249,16 @@ export default function PopularStocksPage() {
                 const pctColor = item.changePct != null
                   ? item.changePct >= 0 ? C.gain : C.loss
                   : C.muted;
+
                 const primaryValue = sortBy === 'volume'
                   ? formatVolume(item.volume, item.currency)
                   : formatMarketCap(item.marketCap, item.currency);
                 const secondaryValue = sortBy === 'volume'
                   ? formatMarketCap(item.marketCap, item.currency)
                   : formatVolume(item.volume, item.currency);
+
+                const ret = returnPeriod === '1m' ? item.returnMonth : item.returnYear;
+                const retColor = ret == null ? '#64748b' : ret >= 0 ? C.gain : C.loss;
 
                 return (
                   <li
@@ -241,7 +287,7 @@ export default function PopularStocksPage() {
                           style={
                             isKR(item.symbol)
                               ? { background: 'rgba(16,185,129,0.15)', color: '#10b981' }
-                              : { background: 'rgba(6,182,212,0.15)', color: '#06b6d4' }
+                              : { background: 'rgba(6,182,212,0.15)',  color: '#06b6d4' }
                           }
                         >
                           {isKR(item.symbol) ? 'KRX' : 'US'}
@@ -260,7 +306,7 @@ export default function PopularStocksPage() {
                       </div>
                     </div>
 
-                    {/* 주요 지표 */}
+                    {/* 주요 지표 (거래량 or 시가총액) */}
                     <div className="text-right shrink-0 w-[72px]">
                       <div className="text-[14px] sm:text-[15px] font-extrabold tabular-nums" style={{ color: '#f97316' }}>
                         {primaryValue}
@@ -272,6 +318,21 @@ export default function PopularStocksPage() {
                       <div className="text-[12px] font-semibold tabular-nums text-slate-400">
                         {secondaryValue}
                       </div>
+                    </div>
+
+                    {/* 수익률 */}
+                    <div className="text-right shrink-0 w-[58px]">
+                      <div
+                        className="text-[13px] font-extrabold tabular-nums"
+                        style={{ color: retColor }}
+                      >
+                        {formatReturn(ret)}
+                      </div>
+                      {ret != null && (
+                        <div className="text-[10px] text-slate-600 mt-0.5">
+                          {returnPeriod === '1m' ? '1개월' : '1년'}
+                        </div>
+                      )}
                     </div>
                   </li>
                 );
